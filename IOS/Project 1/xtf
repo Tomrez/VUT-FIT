@@ -1,0 +1,494 @@
+#!/usr/bin/bash
+POSIXLY_CORRECT=yes
+
+#! EXIT CODES
+# 0 - Success
+# 1 - Wrong arguments
+# 2 - Wrong input files
+# 3 - Wrong data in input files
+#!/ / / / / / / / / / /
+
+fileDataCheck() {
+
+    local fileToCheck=$1
+    local line=1
+
+    while IFS=';' read -r name date currency amount; do
+        #Prazdny radek preskocime
+        if [ -z "$name" ] && [ -z "$date" ] && [ -z "$currency" ] && [ -z "$amount" ]; then
+            continue
+        fi
+        #Chybejici nektera z informaci
+        if [ -z "$name" ] || [ -z "$date" ] || [ -z "$currency" ] || [ -z "$amount" ]; then
+            echo "Bad format in the input file on line $line" >&2
+            exit 3
+        fi
+        #Spatny format data
+        if ! date -d "$date" &>/dev/null; then
+            echo "Bad format in the input file on line $line" >&2
+            exit 3
+        fi
+        #Spatny format meny
+        if ! [ ${#currency} -eq 3 ]; then
+            echo "Bad format in the input file on line $line" >&2
+            exit 3
+        fi
+        #Spatny format ceny
+        if ! [[ $amount =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Bad format in the input file on line $line" >&2
+            exit 3
+        fi
+        line=$(expr $line + 1)
+        
+    done < "$fileToCheck"
+}
+
+fileGZIPCheck() {
+
+    local fileToUngzip=$1
+    newName=$fileToUngzip
+
+    fileExtension="${fileToUngzip##*.}" 
+    if [ "$fileExtension" = "gz" ]; then
+        fileWoExt="${fileToUngzip%%.gz}"
+        gzip -dc "$fileToUngzip" > "$fileWoExt"
+        newName=$fileWoExt
+    fi
+
+}
+
+fileValidityCheck(){
+
+    local file=$1
+    local fileNum=$2
+
+    if [ -n "$file" ] && [ ! -f "$file" ]; then
+        echo "$fileNum file argument is not valid file" >&2
+        exit 2
+    fi
+}
+
+
+# Promenne, do kterych si ulozim vstupni argumenty
+AFTER=""
+BEFORE=""
+CURRENCY=""
+COMMAND=""
+USER=""
+
+# Kontrola existence XTF_PROFIT a pripadne ulozeni defaultni hodnoty
+if [ -z "$XTF_PROFIT" ]; then
+    PROFIT=20
+else
+    PROFIT=$XTF_PROFIT
+fi
+
+# Parsing argumentu (ukladani do prislusnych promennych a kontrola spravnosti formatu)
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -a)
+            if [ -z "$AFTER" ]; then
+                AFTER="$2"
+                if ! date -d "$AFTER" &>/dev/null; then
+                    echo "Bad date format" >&2
+                    exit 1
+                fi
+
+                #Odchyceni formatu, ktery je v realite spravny, ale jiny nez nami pozadovany
+                formatCheck=$(date -d "$AFTER" +"%Y-%m-%d %H:%M:%S" 2>/dev/null)
+                if [ "$formatCheck" != "$AFTER" ]; then
+                    echo "Bad date format" >&2
+                    exit 1
+                fi
+
+                shift 2
+            else
+                echo "Multiple -a arguments" >&2
+                exit 1 
+            fi
+            ;;
+
+        -b)
+            if [ -z "$BEFORE" ]; then
+                BEFORE="$2"
+                if ! date -d "$BEFORE" &>/dev/null; then
+                    echo "Bad date format" >&2
+                    exit 1
+                fi
+                
+                formatCheck=$(date -d "$BEFORE" +"%Y-%m-%d %H:%M:%S" 2>/dev/null)
+                if [ "$formatCheck" != "$BEFORE" ]; then
+                    echo "Bad date format" >&2
+                    exit 1
+                fi
+
+                shift 2
+            else
+                echo "Multiple -b arguments" >&2
+                exit 1
+            fi
+            ;;
+
+        -c)
+            if [ -z "$CURRENCY" ];then
+                CURRENCY="$2"
+                if ! [ ${#CURRENCY} -eq 3 ]; then
+                    echo "Wrong currency format" >&2
+                    exit 1
+                fi
+                shift 2
+            else
+                echo "Multiple -c arguments" >&2
+                exit 1
+            fi
+            ;;
+
+        -h|--help)
+            echo "Usage: xtf [-h|--help] [FILTR] [PŘÍKAZ] UŽIVATEL LOG [LOG2 [...]]"
+            echo "Options:"
+            echo "-a DATETIME – after: consider only records after this date and time (excluding it). DATETIME format is YYYY-MM-DD HH:MM:SS."
+            echo "-b DATETIME – before: consider only records before this date and time (excluding it)."
+            echo "-c CURRENCY – consider only records corresponding to the given currency."
+            exit 0
+            ;;
+
+        list|list-currency|status|profit)   
+            COMMAND="$1"
+            USER="$2"
+            if [ -z "$USER" ] || [ -f $USER ]; then
+                echo "Wrong user" >&2
+                exit 1
+            fi
+            shift 2
+            break
+            ;;
+
+        *)
+            USER="$1"
+            if [ -z "$USER" ] || [ -f $USER ]; then
+                echo "Wrong user" >&2
+                exit 1
+            fi
+            shift 1
+            break
+            ;;
+    esac
+done
+
+if [ -z "$USER" ]; then
+    echo "Wrong or none user" >&2
+    exit 1
+fi
+
+# Pokud byl zadan alespon jeden soubor, ma cenu pokracovat v programu dale
+if [ -f "$1" ]; then
+
+    #Kontrola validity formatu uvnitr vstupnich souboru a pripadne rozgzipovani
+    file1=$1
+    if [ -f "$file1" ]; then 
+        fileGZIPCheck "$file1"
+        file1=$newName
+        fileDataCheck "$file1"
+    fi
+    fileValidityCheck "$file1" "First"
+
+    file2=$2
+    if [ -f "$file2" ]; then
+        fileGZIPCheck "$file2"
+        file2=$newName
+        fileDataCheck "$file2"
+    fi
+    fileValidityCheck "$file2" "Second"
+
+    file3=$3
+    if [ -f "$file3" ]; then
+        fileGZIPCheck "$file3"
+        file3=$newName
+        fileDataCheck "$file3"
+    fi
+    fileValidityCheck "$file3" "Third"
+
+    file4=$4
+    if [ -f "$file4" ]; then
+        fileGZIPCheck "$file4"
+        file4=$newName
+        fileDataCheck "$file4"
+    fi
+    fileValidityCheck "$file4" "Fourth"
+
+    file5=$5
+    if [ -f "$file5" ]; then
+        fileGZIPCheck "$file5"
+        file5=$newName
+        fileDataCheck "$file5"
+    fi
+    fileValidityCheck "$file5" "Fifth"
+    
+    #switch pro zjisteni akce, ktera se ma nad daty stat
+    case "$COMMAND" in
+
+        list|"")
+            awk -F';' -v username="$USER" -v dateBefore="$BEFORE" -v dateAfter="$AFTER" -v currency="$CURRENCY" '
+                BEGIN {
+                    #? Pokud je zadane dateBefore-> ziskam jeho timestamp
+                    if (dateBefore != "") {
+                        split(dateBefore, d, /[- :]/);
+                        beforeStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                    #? Pokud je zadane dateAfter -> ziskam jeho timestamp
+                    if (dateAfter != "") {
+                        split(dateAfter, d, /[- :]/);
+                        afterStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                }
+                {
+                    #? Pokud jsou zadane oba filtrovaci datumy
+                    if (dateBefore != "" && dateAfter != "") {
+                        split($2, d, /[- :]/);
+                        logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                        if (beforeStamp > logStamp && logStamp > afterStamp) {
+                            #? Kontrola spravnosti username a currency, pokud byly zadane
+                            if ((currency == "" || currency == $3) && (username == $1)) {
+                                print;
+                            }
+                        }
+                    } 
+                    #? Pokud je zadany jen dateBefore
+                    else if (dateBefore != "") {
+                        split($2, d, /[- :]/);
+                        logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                        if (logStamp < beforeStamp) {
+                            #? Kontrola spravnosti username a currency, pokud byly zadane
+                            if ((currency == "" || currency == $3) && (username == $1)) {
+                                print;
+                            }
+                        }
+                    #? Pokud je zadany jen dateAfter
+                    } else if (dateAfter != "") {
+                        split($2, d, /[- :]/);
+                        logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                        if (afterStamp < logStamp) {
+                            #? Kontrola spravnosti username a currency, pokud byly zadane
+                            if ((currency == "" || currency == $3) && (username == $1)) {
+                                print;
+                            }
+                        }
+                    } 
+                    #? Pokud neni zadany ani jeden
+                    else {
+                        if ((currency == "" || currency == $3) && (username == $1)) {
+                        print;
+                        }
+                    }
+                }
+                ' "$file1" "$file2" "$file3" "$file4" "$file5"
+            ;;
+        
+        list-currency)
+            awk -F';' -v username="$USER" -v dateBefore="$BEFORE" -v dateAfter="$AFTER" -v currency="$CURRENCY" '
+                BEGIN {
+                    #? Pokud je zadane dateBefore-> ziskam jeho timestamp
+                    if (dateBefore != "") {
+                        split(dateBefore, d, /[- :]/);
+                        beforeStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                    #? Pokud je zadane dateAfter -> ziskam jeho timestamp
+                    if (dateAfter != "") {
+                        split(dateAfter, d, /[- :]/);
+                        afterStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                }
+                {
+                    split($3, currencies, ","); # Split currencies by comma
+
+                    for (i in currencies) {
+                        currency = currencies[i];
+                        #? Pokud jsou zadane oba filtrovaci datumy
+                        if (dateBefore != "" && dateAfter != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (beforeStamp > logStamp && logStamp > afterStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((currency == "" || currency == $3) && (username == $1)) {
+                                    uniqueCurrency[currency] = 1;
+                                }
+                            }
+                        } 
+                        #? Pokud je zadany jen dateBefore
+                        else if (dateBefore != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (logStamp < beforeStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((currency == "" || currency == $3) && (username == $1)) {
+                                    uniqueCurrency[currency] = 1;
+                                }
+                            }
+                        #? Pokud je zadany jen dateAfter
+                        } else if (dateAfter != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (afterStamp < logStamp) {
+                                #? Pontrola spravnosti username a currency, pokud byly zadane
+                                if ((currency == "" || currency == $3) && (username == $1)) {
+                                    uniqueCurrency[currency] = 1;
+                                }
+                            }
+                        } 
+                        #? Pokud neni zadany ani jeden
+                        else {
+                            if ((currency == "" || currency == $3) && (username == $1)) {
+                                uniqueCurrency[currency] = 1;
+                            }
+                        }    
+                    }
+                }
+                END {
+                    for (currency in uniqueCurrency) {
+                        print currency
+                    }
+                }
+                ' "$file1" "$file2" "$file3" "$file4" "$file5" | sort
+            ;;
+        status)
+            LC_ALL=C awk -F';' -v username="$USER" -v dateBefore="$BEFORE" -v dateAfter="$AFTER" -v curr="$CURRENCY" '
+                BEGIN {
+                    #? Pokud je zadane dateBefore-> ziskam jeho timestamp
+                    if (dateBefore != "") {
+                        split(dateBefore, d, /[- :]/);
+                        beforeStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                    #? Pokud je zadane dateAfter -> ziskam jeho timestamp
+                    if (dateAfter != "") {
+                        split(dateAfter, d, /[- :]/);
+                        afterStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                }
+                {
+                    split($3, currencies, ","); # Split currencies by comma
+
+                    for (i in currencies) {
+                        currency = currencies[i];
+                        #? Pokud jsou zadane oba filtrovaci datumy
+                        if (dateBefore != "" && dateAfter != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (beforeStamp > logStamp && logStamp > afterStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((curr == "" || curr == $3) && (username == $1)) {
+                                    valueCurrency[currency] += $4;
+                                }
+                            }
+                        } 
+                        #? Pokud je zadany jen dateBefore
+                        else if (dateBefore != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (logStamp < beforeStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((curr == "" || curr == $3) && (username == $1)) {
+                                    valueCurrency[currency] += $4;
+                                }
+                            }
+                        #? Pokud je zadany jen dateAfter
+                        } else if (dateAfter != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (afterStamp < logStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((curr == "" || curr == $3) && (username == $1)) {
+                                    valueCurrency[currency] += $4;
+                                }
+                            }
+                        } 
+                        #? Pokud neni zadany ani jeden
+                        else {
+                            if ((curr == "" || curr == $3) && (username == $1)) {
+                                valueCurrency[currency] += $4;
+                            }
+                        }    
+                    }
+                }
+                END {
+                    for (currency in valueCurrency) {
+                        printf("%s : %.4f\n", currency, valueCurrency[currency])
+                    }  
+                }
+                ' "$file1" "$file2" "$file3" "$file4" "$file5" | sort
+            ;;
+        profit)
+            LC_ALL=C awk -F';' -v username="$USER" -v dateBefore="$BEFORE" -v dateAfter="$AFTER" -v curr="$CURRENCY" -v profit="$PROFIT" '
+                BEGIN {
+                    #? Pokud je zadane dateBefore-> ziskam jeho timestamp
+                    if (dateBefore != "") {
+                        split(dateBefore, d, /[- :]/);
+                        beforeStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                    #? Pokud je zadane dateAfter -> ziskam jeho timestamp
+                    if (dateAfter != "") {
+                        split(dateAfter, d, /[- :]/);
+                        afterStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                    }
+                }
+                {
+                    split($3, currencies, ","); # Split currencies by comma
+
+                    for (i in currencies) {
+                        currency = currencies[i];
+                        #? Pokud jsou zadane oba filtrovaci datumy
+                        if (dateBefore != "" && dateAfter != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (beforeStamp > logStamp && logStamp > afterStamp) {
+                                #?Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((curr == "" || curr == $3) && (username == $1)) {
+                                    valueCurrency[currency] += $4;
+                                }
+                            }
+                        } 
+                        #? Kokud je zadany jen dateBefore
+                        else if (dateBefore != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (logStamp < beforeStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((curr == "" || curr == $3) && (username == $1)) {
+                                    valueCurrency[currency] += $4;
+                                }
+                            }
+                        #? Pokud je zadany jen dateAfter
+                        } else if (dateAfter != "") {
+                            split($2, d, /[- :]/);
+                            logStamp = mktime(d[1] " " d[2] " " d[3] " " d[4] " " d[5] " " d[6]);
+                            if (afterStamp < logStamp) {
+                                #? Kontrola spravnosti username a currency, pokud byly zadane
+                                if ((curr == "" || curr == $3) && (username == $1)) {
+                                    valueCurrency[currency] += $4;
+                                }
+                            }
+                        } 
+                        #? Pokud neni zadany ani jeden
+                        else {
+                            if ((curr == "" || curr == $3) && (username == $1)) {
+                                valueCurrency[currency] += $4;
+                            }
+                        }    
+                    }
+                }
+                END {
+                    #? Vynasobeni kladnych cisel promennou urcujici profit
+                    for (currency in valueCurrency) {
+                        if(valueCurrency[currency] > 0) {
+                            valueCurrency[currency] = valueCurrency[currency]*(1 + profit/100)
+                        }
+                        printf("%s : %.4f\n", currency, valueCurrency[currency])
+                    }  
+                }
+                ' "$file1" "$file2" "$file3" "$file4" "$file5" | sort
+            ;;
+
+    esac
+else
+    echo "First file argument is not valid file" >&2
+    exit 2
+fi
