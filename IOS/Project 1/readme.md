@@ -1,5 +1,8 @@
 # XTF - Cryptocurrency exchange and market
 
+## Project evaluation
+### 14/15 points
+
 #  Project assignment 
 
 ## Popis úlohy

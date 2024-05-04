@@ -1,4 +1,8 @@
 # Skibus - process synchronization
+## Project evaluation
+### 13/15 points
+- Bus should be made as a child process not in a main process
+
 # Project assignment
 Zadání je inspirováno knihou Allen B. Downey: The Little Book of Semaphores (The Senate Bus
 problem)
