@@ -6,11 +6,10 @@ use IPP\Core\Interface\InputReader;
 use IPP\Core\ReturnCode;
 
 include("XMLtoOPCode.php");
+include("Operations.php");
 
-use Exception;
 use IPP\Core\AbstractInterpreter;
 use IPP\Core\Exception\NotImplementedException;
-use SymTable;
 
 class Interpreter extends AbstractInterpreter
 {
@@ -241,6 +240,53 @@ class Interpreter extends AbstractInterpreter
         }
     }
 
+    /**
+     * @param string $varName
+     * @param mixed $varVal
+     * @param string $varType
+     * @param Frame $globalFrame
+     * @param ?FrameBuffer $localFrameBuffer
+     * @param ?Frame $temporaryFrame
+     */
+    public function updateVariableValueAndType($varName, $varVal, $varType, $globalFrame, $localFrameBuffer, $temporaryFrame): void
+    {
+        if($this->varFrame($varName) == "GF")
+        {
+            $globalFrame->updateVariableValue($this->varName($varName), $varVal);
+            $globalFrame->updateVariableType($this->varName($varName), $varType);
+
+        }
+        else if($this->varFrame($varName) == "TF")
+        {
+             $temporaryFrame->updateVariableValue($this->varName($varName), $varVal);
+             $temporaryFrame->updateVariableType($this->varName($varName), $varType);
+        }
+        else if($this->varFrame($varName) == "LF")
+        {
+            $index = $localFrameBuffer->findVariableInBuffer($varName);
+            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($varName), $varVal);
+            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($varName), $varType);
+        }
+        else
+        {
+            fwrite(STDERR, "Nelze udelat pop jinam nez do existujicich ramcu\n");
+            exit(ReturnCode::FRAME_ACCESS_ERROR);
+        }
+    }
+    /**
+     * @param int $argCount
+     * @param int $expectedArgCount
+     */
+
+    public function checkArgsAmount($argCount, $expectedArgCount): void
+    {
+        if ($argCount != $expectedArgCount)
+        {
+            fwrite(STDERR, "Spatny pocet argumentu\n");
+            exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
+        }
+    }
+
 
     public function execute(): int
     {
@@ -271,11 +317,7 @@ class Interpreter extends AbstractInterpreter
             switch ($instruction->getOpcode())
             {
                 case "MOVE":
-                    if ($instruction->getNumOfArgs() != 2)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 2);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -290,13 +332,9 @@ class Interpreter extends AbstractInterpreter
                     }
                     else if($arg2->getType() == "bool")
                     {
-                        if($arg2->getName() == "true")
+                        if($arg2->getName() == "true" || $arg2->getName() == "false")
                         {
-                            $moveFrom = "true";
-                        }
-                        else if($arg2->getName() == "false")
-                        {
-                            $moveFrom = "false";
+                            $moveFrom = $arg2->getName();
                         }
                         else
                         {
@@ -313,17 +351,9 @@ class Interpreter extends AbstractInterpreter
                     {
                         $globalFrame->updateVariableValue($this->varName($arg1->getName()), $moveFrom);
                         
-                        if ($arg2->getType() == "int")
+                        if ($arg2->getType() == "int" || $arg2->getType() == "bool" || $arg2->getType() == "nil")
                         {
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "int");
-                        }
-                        else if ($arg2->getType() == "bool")
-                        {
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if ($arg2->getType() == "nil")
-                        {
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "nil");
+                            $globalFrame->updateVariableType($this->varName($arg1->getName()), $arg2->getType());
                         }
                         else
                         {
@@ -340,17 +370,9 @@ class Interpreter extends AbstractInterpreter
                         }
 
                         $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $moveFrom);
-                        if ($arg2->getType() == "int")
+                        if ($arg2->getType() == "int" || $arg2->getType() == "bool" || $arg2->getType() == "nil")
                         {
-                           $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "int");
-                        }
-                        else if ($arg2->getType() == "bool")
-                        {
-                           $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if ($arg2->getType() == "nil")
-                        {
-                           $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "nil");
+                           $temporaryFrame->updateVariableType($this->varName($arg1->getName()), $arg2->getType());
                         }
                         else
                         {
@@ -362,17 +384,9 @@ class Interpreter extends AbstractInterpreter
                         $index = $localFrameBuffer->findVariableInBuffer($this->varName($arg1->getName()));
                         $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $moveFrom);
                         
-                        if ($arg2->getType() == "int")
+                        if ($arg2->getType() == "int" || $arg2->getType() == "bool" || $arg2->getType() == "nil")
                         {
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "int");
-                        }
-                        else if ($arg2->getType() == "bool")
-                        {
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if ($arg2->getType() == "nil")
-                        {
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "nil");
+                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), $arg2->getType());
                         }
                         else
                         {
@@ -388,11 +402,7 @@ class Interpreter extends AbstractInterpreter
                     break;
                 
                 case "CREATEFRAME":
-                    if ($instruction->getNumOfArgs() != 0)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 0);
 
                     if ($temporaryFrame != null)
                     {
@@ -403,11 +413,7 @@ class Interpreter extends AbstractInterpreter
                     break;
                 
                 case "PUSHFRAME":
-                    if ($instruction->getNumOfArgs() != 0)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 0);
 
                     if($temporaryFrame == null)
                     {
@@ -422,11 +428,7 @@ class Interpreter extends AbstractInterpreter
                     break;
                 
                 case "POPFRAME":
-                    if ($instruction->getNumOfArgs() != 0)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 0);
 
                     $temporaryFrame = null;
                     $temporaryFrame = $localFrameBuffer->getLatestFrame();
@@ -435,11 +437,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "DEFVAR":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
 
@@ -471,11 +469,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "CALL":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
 
@@ -496,22 +490,14 @@ class Interpreter extends AbstractInterpreter
                     break; 
 
                 case "RETURN":
-                    if ($instruction->getNumOfArgs() != 0)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 0);
 
                     $i = $returnStack->stackPop();
 
                     break;
 
                 case "PUSHS":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
 
@@ -531,11 +517,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "POPS":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
                      
@@ -543,1094 +525,35 @@ class Interpreter extends AbstractInterpreter
 
                     if ($popVar->getType() == "var")
                     {
-
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), $popVar->getValue());
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), $popVar->getType());
-
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                                $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $popVar->getValue());
-                                $temporaryFrame->updateVariableType($this->varName($arg1->getName()), $popVar->getType());
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $popVar->getValue());
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), $popVar->getType());
-                        }
-                        else
-                        {
-                            fwrite(STDERR, "Nelze udelat pop jinam nez do existujicich ramcu\n");
-                            exit(ReturnCode::FRAME_ACCESS_ERROR);
-                        }
+                        $this->updateVariableValueAndType($arg1->getName(), $popVar->getValue(), $popVar->getType(), $globalFrame, $localFrameBuffer, $temporaryFrame);
                     }
                     else
                     {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), $popVar->getName());
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), $popVar->getType());
-
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                                $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $popVar->getName());
-                                $temporaryFrame->updateVariableType($this->varName($arg1->getName()), $popVar->getType());
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $popVar->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), $popVar->getType());
-                        }
-                        else
-                        {
-                            fwrite(STDERR, "Nelze udelat pop jinam nez do existujicich ramcu\n");
-                            exit(ReturnCode::FRAME_ACCESS_ERROR);
-                        }
+                        $this->updateVariableValueAndType($arg1->getName(), $popVar->getName(), $popVar->getType(), $globalFrame, $localFrameBuffer, $temporaryFrame);
                     }
 
                     break;
 
                 case "ADD":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $numOne = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                    $numTwo = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                    if(is_numeric($numOne) && is_numeric($numTwo))
-                    {
-                        $add = $numOne + $numTwo;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Obe promenne musi byt typu int\n");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);                        
-                    }
-
-                    if($this->varFrame($arg1->getName()) == "GF")
-                    {
-                        $globalFrame->updateVariableValue($this->varName($arg1->getName()), $add);
-                        $globalFrame->updateVariableType($this->varName($arg1->getName()), "int");
-
-                    }
-                    else if($this->varFrame($arg1->getName()) == "TF")
-                    {
-                         $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $add);
-                         $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else if($this->varFrame($arg1->getName()) == "LF")
-                    {
-                        $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                        $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $add);
-                        $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Neexistujici ramec\n");
-                        exit(ReturnCode::FRAME_ACCESS_ERROR);
-                    }
-
-                    break;
-
                 case "SUB":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $numOne = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                    $numTwo = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                    if(is_numeric($numOne) && is_numeric($numTwo))
-                    {
-                        $sub = $numOne - $numTwo;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Obe promenne musi byt typu int\n");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-
-                    if($this->varFrame($arg1->getName()) == "GF")
-                    {
-                        $globalFrame->updateVariableValue($this->varName($arg1->getName()), $sub);
-                        $globalFrame->updateVariableType($this->varName($arg1->getName()), "int");
-
-                    }
-                    else if($this->varFrame($arg1->getName()) == "TF")
-                    {
-                         $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $sub);
-                         $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else if($this->varFrame($arg1->getName()) == "LF")
-                    {
-                        $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                        $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $sub);
-                        $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Neexistujici ramec\n");
-                        exit(ReturnCode::FRAME_ACCESS_ERROR);
-                    }
-
-                    break;
-
                 case "MUL":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $numOne = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                    $numTwo = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                    if(is_numeric($numOne) && is_numeric($numTwo))
-                    {
-                        $mul = $numOne * $numTwo;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Obe promenne musi byt typu int\n");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-                    
-                    if($this->varFrame($arg1->getName()) == "GF")
-                    {
-                        $globalFrame->updateVariableValue($this->varName($arg1->getName()), $mul);
-                        $globalFrame->updateVariableType($this->varName($arg1->getName()), "int");
-
-                    }
-                    else if($this->varFrame($arg1->getName()) == "TF")
-                    {
-                         $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $mul);
-                         $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else if($this->varFrame($arg1->getName()) == "LF")
-                    {
-                        $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                        $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $mul);
-                        $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Neexistujici ramec\n");
-                        exit(ReturnCode::FRAME_ACCESS_ERROR);
-                    }
-
-                    break;
-                    
-                
                 case "IDIV":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $numOne = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                    $numTwo = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                    if($numTwo == 0)
-                    {
-                        fwrite(STDERR, "Nelze delit nulou\n");
-                        exit(ReturnCode::OPERAND_VALUE_ERROR);
-                    }
-
-                    if(is_numeric($numOne) && is_numeric($numTwo))
-                    {
-                        $div = $numOne / $numTwo;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Obe promenne musi byt typu int\n");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-                    
-                    if($this->varFrame($arg1->getName()) == "GF")
-                    {
-                        $globalFrame->updateVariableValue($this->varName($arg1->getName()), $div);
-                        $globalFrame->updateVariableType($this->varName($arg1->getName()), "int");
-
-                    }
-                    else if($this->varFrame($arg1->getName()) == "TF")
-                    {
-                         $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $div);
-                         $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else if($this->varFrame($arg1->getName()) == "LF")
-                    {
-                        $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                        $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $div);
-                        $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "int");
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Neexistujici ramec\n");
-                        exit(ReturnCode::FRAME_ACCESS_ERROR);
-                    }
-
+                    arithmetic($this, $instruction, $globalFrame, $localFrameBuffer, $temporaryFrame);
                     break;
 
                 case "LT":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $first = null;
-                    $second = null;
-                    $firstType = null;
-                    $secondType = null;
-
-                    switch ($arg2->getType())
-                    {
-                        case "int":
-                            $first = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                            $firstType = "int";
-                            break;
-                        case "var":
-                            $first = $this->getVarValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                            if (is_numeric($first))
-                            {
-                                $first = intval($first);
-                                $firstType = "int";
-                            }
-                            else if ($first == "true" || $first == "false")
-                            {
-                                $firstType = "bool";
-                            }
-                            else if ($first == "nil")
-                            {
-                                fwrite(STDERR, "Nelze porovnavat s nil\n");
-                                exit(ReturnCode::OPERAND_TYPE_ERROR);
-                            }
-                            else
-                            {
-                                $firstType = "string";
-                            }
-                            break;
-                            
-                        case "string":
-                            $first = $arg2->getName();
-                            $firstType = "string";
-                            break;
-                        case "bool":
-                            $first = $arg2->getName();
-                            $firstType = "bool";
-                            break;
-                        case "nil":
-                            fwrite(STDERR, "Nelze porovnavat s nil\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-
-                    switch ($arg3->getType())
-                    {
-                        case "int":
-                            $second = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                            $secondType = "int";
-                            break;
-                        case "var":
-                            $second = $this->getVarValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                            if (is_numeric($second))
-                            {
-                                $second = intval($second);
-                                $secondType = "int";
-                            }
-                            else if ($second == "true" || $second == "false")
-                            {
-                                $secondType = "bool";
-                            }
-                            else if ($second == "nil")
-                            {
-                                fwrite(STDERR, "Nelze porovnavat s nil\n");
-                                exit(ReturnCode::OPERAND_TYPE_ERROR);
-                            }
-                            else
-                            {
-                                $secondType = "string";
-                            }
-                            break;
-
-                        case "string":
-                            $second = $arg3->getName();
-                            $secondType = "string";
-                            break;
-                        case "bool":
-                            $second = $arg3->getName();
-                            $secondType = "bool";
-                            break;
-                        case "nil":
-                            fwrite(STDERR, "Nelze porovnavat s nil\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-                    if ($firstType == $secondType)
-                    {
-                        if ($firstType == "bool")
-                        {
-                            if ($first == "true")
-                            {
-                                $first = true;
-                            }
-                            else
-                            {
-                                $first = false;
-                            }
-                            if ($second == "true")
-                            {
-                                $second = true;
-                            }
-                            else
-                            {
-                                $second = false;
-                            }
-                        }
-
-                        if ($first < $second)
-                        {
-                            //TRUE
-                            if($this->varFrame($arg1->getName()) == "GF")
-                            {
-                                $globalFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                                $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-        
-                            }
-                            else if($this->varFrame($arg1->getName()) == "TF")
-                            {
-                                    $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                                    $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else if($this->varFrame($arg1->getName()) == "LF")
-                            {
-                                $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                                $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "true");
-                                $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else
-                            {
-                                fwrite(STDERR, "Neexistujici ramec\n");
-                                exit(ReturnCode::FRAME_ACCESS_ERROR);
-                            }
-                        }
-                        else
-                        {
-                            //FALSE
-                            if($this->varFrame($arg1->getName()) == "GF")
-                            {
-                                $globalFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                                $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-        
-                            }
-                            else if($this->varFrame($arg1->getName()) == "TF")
-                            {
-                                    $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                                    $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else if($this->varFrame($arg1->getName()) == "LF")
-                            {
-                                $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                                $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "false");
-                                $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else
-                            {
-                                fwrite(STDERR, "Neexistujici ramec\n");
-                                exit(ReturnCode::FRAME_ACCESS_ERROR);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Datove typy se neshoduji\n");
-                        exit(53);
-                    }
-                    break;
-
                 case "GT":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $first = null;
-                    $second = null;
-                    $firstType = null;
-                    $secondType = null;
-
-                    switch ($arg2->getType())
-                    {
-                        case "int":
-                            $first = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                            $firstType = "int";
-                            break;
-                        case "var":
-                            $first = $this->getVarValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                            if (is_numeric($first))
-                            {
-                                $first = intval($first);
-                                $firstType = "int";
-                            }
-                            else if ($first == "true" || $first == "false")
-                            {
-                                $firstType = "bool";
-                            }
-                            else if ($first == "nil")
-                            {
-                                fwrite(STDERR, "Nelze porovnavat s nil\n");
-                                exit(ReturnCode::OPERAND_TYPE_ERROR);
-                            }
-                            else
-                            {
-                                $firstType = "string";
-                            }
-                            break;
-                            
-                        case "string":
-                            $first = $arg2->getName();
-                            $firstType = "string";
-                            break;
-                        case "bool":
-                            $first = $arg2->getName();
-                            $firstType = "bool";
-                            break;
-                        case "nil":
-                            fwrite(STDERR, "Nelze porovnavat s nil\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-
-                    switch ($arg3->getType())
-                    {
-                        case "int":
-                            $second = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                            $secondType = "int";
-                            break;
-                        case "var":
-                            $second = $this->getVarValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                            if (is_numeric($second))
-                            {
-                                $second = intval($second);
-                                $secondType = "int";
-                            }
-                            else if ($second == "true" || $second == "false")
-                            {
-                                $secondType = "bool";
-                            }
-                            else if ($second == "nil")
-                            {
-                                fwrite(STDERR, "Nelze porovnavat s nil\n");
-                                exit(ReturnCode::OPERAND_TYPE_ERROR);
-                            }
-                            else
-                            {
-                                $secondType = "string";
-                            }
-                            break;
-
-                        case "string":
-                            $second = $arg3->getName();
-                            $secondType = "string";
-                            break;
-                        case "bool":
-                            $second = $arg3->getName();
-                            $secondType = "bool";
-                            break;
-                        case "nil":
-                            fwrite(STDERR, "Nelze porovnavat s nil\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-
-                    }
-                    if ($firstType == $secondType)
-                    {
-                        if ($firstType == "bool")
-                        {
-                            if ($first == "true")
-                            {
-                                $first = true;
-                            }
-                            else
-                            {
-                                $first = false;
-                            }
-                            if ($second == "true")
-                            {
-                                $second = true;
-                            }
-                            else
-                            {
-                                $second = false;
-                            }
-                        }
-
-                        if ($first > $second)
-                        {
-                            //TRUE
-                            if($this->varFrame($arg1->getName()) == "GF")
-                            {
-                                $globalFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                                $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-        
-                            }
-                            else if($this->varFrame($arg1->getName()) == "TF")
-                            {
-                                    $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                                    $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else if($this->varFrame($arg1->getName()) == "LF")
-                            {
-                                $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                                $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "true");
-                                $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else
-                            {
-                                fwrite(STDERR, "Neexistujici ramec\n");
-                                exit(ReturnCode::FRAME_ACCESS_ERROR);
-                            }
-                        }
-                        else
-                        {
-                            //FALSE
-                            if($this->varFrame($arg1->getName()) == "GF")
-                            {
-                                $globalFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                                $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-        
-                            }
-                            else if($this->varFrame($arg1->getName()) == "TF")
-                            {
-                                    $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                                    $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else if($this->varFrame($arg1->getName()) == "LF")
-                            {
-                                $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                                $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "false");
-                                $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else
-                            {
-                                fwrite(STDERR, "Neexistujici ramec\n");
-                                exit(ReturnCode::FRAME_ACCESS_ERROR);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Datove typy se neshoduji\n");
-                        exit(53);
-                    }
-                    break;
-
                 case "EQ":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $first = null;
-                    $second = null;
-                    $firstType = null;
-                    $secondType = null;
-
-                    switch ($arg2->getType())
-                    {
-                        case "int":
-                            $first = $this->getIntValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                            $firstType = "int";
-                            break;
-                        case "var":
-                            $first = $this->getVarValue($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                            if (is_numeric($first))
-                            {
-                                $first = intval($first);
-                                $firstType = "int";
-                            }
-                            else if ($first == "true" || $first == "false")
-                            {
-                                $firstType = "bool";
-                            }
-                            else
-                            {
-                                $firstType = "string";
-                            }
-                            break;
-                            
-                        case "string":
-                            $first = $arg2->getName();
-                            $firstType = "string";
-                            break;
-                        case "bool":
-                            $first = $arg2->getName();
-                            $firstType = "bool";
-                            break;
-                        case "nil":
-                            $first = null;
-                            $firstType = "nil";
-                            break;
-                    }
-
-                    switch ($arg3->getType())
-                    {
-                        case "int":
-                            $second = $this->getIntValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-                            $secondType = "int";
-                            break;
-                        case "var":
-                            $second = $this->getVarValue($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame);
-
-                            if (is_numeric($second))
-                            {
-                                $second = intval($second);
-                                $secondType = "int";
-                            }
-                            else if ($second == "true" || $second == "false")
-                            {
-                                $secondType = "bool";
-                            }
-                            else
-                            {
-                                $secondType = "string";
-                            }
-                            break;
-
-                        case "string":
-                            $second = $arg3->getName();
-                            $secondType = "string";
-                            break;
-                        case "bool":
-                            $second = $arg3->getName();
-                            $secondType = "bool";
-                            break;
-                        case "nil":
-                            $second = null;
-                            $secondType = "nil";
-                            break;
-                    }
-                    if ($firstType == $secondType || $firstType == "nil" || $secondType == "nil")
-                    {
-                        if ($firstType == "bool")
-                        {
-                            if ($first == "true")
-                            {
-                                $first = true;
-                            }
-                            else
-                            {
-                                $first = false;
-                            }
-                        }
-                        if ($secondType == "bool")
-                        {
-                            if ($second == "true")
-                            {
-                                $second = true;
-                            }
-                            else
-                            {
-                                $second = false;
-                            }
-                        }
-
-                        if ($first == $second)
-                        {
-                            //TRUE
-                            if($this->varFrame($arg1->getName()) == "GF")
-                            {
-                                $globalFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                                $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-        
-                            }
-                            else if($this->varFrame($arg1->getName()) == "TF")
-                            {
-                                    $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                                    $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else if($this->varFrame($arg1->getName()) == "LF")
-                            {
-                                $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                                $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "true");
-                                $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else
-                            {
-                                fwrite(STDERR, "Neexistujici ramec\n");
-                                exit(ReturnCode::FRAME_ACCESS_ERROR);
-                            }
-                        }
-                        else
-                        {
-                            //FALSE
-                            if($this->varFrame($arg1->getName()) == "GF")
-                            {
-                                $globalFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                                $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-        
-                            }
-                            else if($this->varFrame($arg1->getName()) == "TF")
-                            {
-                                    $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                                    $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else if($this->varFrame($arg1->getName()) == "LF")
-                            {
-                                $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                                $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "false");
-                                $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                            }
-                            else
-                            {
-                                fwrite(STDERR, "Neexistujici ramec\n");
-                                exit(ReturnCode::FRAME_ACCESS_ERROR);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Datove typy se neshoduji\n");
-                        exit(53);
-                    }
+                    compare($this, $instruction, $globalFrame, $localFrameBuffer, $temporaryFrame);
                     break;
 
                 case "AND":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $first = null;
-                    $second = null;
-
-                    if ($arg2->getType() == "var")
-                    {
-                        $first = $this->getVariableFromFrames($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame)->getValue();
-
-                        if ($first != "true" && $first != "false")
-                        {
-                            fwrite(STDERR, "Funkce AND vyzaduje dve promenne typu bool\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                        }
-                        if ($first == "true")
-                        {
-                            $first = true;
-                        }
-                        else
-                        {
-                            $first = false;
-                        }
-                    }
-                    else if($arg2->getType() == "bool")
-                    {
-                        $first = $arg2->getName();
-
-                        if ($first == "true")
-                        {
-                            $first = true;
-                        }
-                        else
-                        {
-                            $first = false;
-                        }
-                    }
-                    else if($arg2->getType() == "nil")
-                    {
-                        $first = null;
-                    }
-                    else
-                    {
-                        fwrite(STDERR,  "Funkce AND vyzaduje dve promenne typu bool");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-
-
-
-                    if ($arg3->getType() == "var")
-                    {
-                        $second = $this->getVariableFromFrames($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame)->getValue();
-
-                        if ($second != "true" && $second != "false")
-                        {
-                            fwrite(STDERR, "Funkce AND vyzaduje dve promenne typu bool\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                        }
-                        if ($second == "true")
-                        {
-                            $second = true;
-                        }
-                        else
-                        {
-                            $second = false;
-                        }
-                    }
-                    else if($arg3->getType() == "bool")
-                    {
-                        $second = $arg3->getName();
-
-                        if ($second == "true")
-                        {
-                            $second = true;
-                        }
-                        else
-                        {
-                            $second = false;
-                        }
-                    }
-                    else if($arg3->getType() == "nil")
-                    {
-                        $second = null;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Funkce AND vyzaduje dve promenne typu bool");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-                
-                    $andResult = $first && $second;
-
-                    if ($andResult)
-                    {
-                        //TRUE
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "true");
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                    }
-                    else
-                    {
-                        //FALSE
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "false");
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                    }
-                  
-
-                    break;
-
                 case "OR":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
-
-                    $arg1 = $instruction->getFirstArg();
-                    $arg2 = $instruction->getSecondArg();
-                    $arg3 = $instruction->getThirdArg();
-
-                    $first = null;
-                    $second = null;
-
-                    if ($arg2->getType() == "var")
-                    {
-                        $first = $this->getVariableFromFrames($arg2, $globalFrame, $localFrameBuffer, $temporaryFrame)->getValue();
-
-                        if ($first != "true" && $first != "false")
-                        {
-                            fwrite(STDERR, "Funkce OR vyzaduje dve promenne typu bool\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                        }
-                        if ($first == "true")
-                        {
-                            $first = true;
-                        }
-                        else
-                        {
-                            $first = false;
-                        }
-                    }
-                    else if($arg2->getType() == "bool")
-                    {
-                        $first = $arg2->getName();
-
-                        if ($first == "true")
-                        {
-                            $first = true;
-                        }
-                        else
-                        {
-                            $first = false;
-                        }
-                    }
-                    else if($arg2->getType() == "nil")
-                    {
-                        $first = null;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Funkce OR vyzaduje dve promenne typu bool");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-
-
-
-                    if ($arg3->getType() == "var")
-                    {
-                        $second = $this->getVariableFromFrames($arg3, $globalFrame, $localFrameBuffer, $temporaryFrame)->getValue();
-
-                        if ($second != "true" && $second != "false")
-                        {
-                            fwrite(STDERR, "Funkce OR vyzaduje dve promenne typu bool\n");
-                            exit(ReturnCode::OPERAND_TYPE_ERROR);
-                        }
-                        if ($second == "true")
-                        {
-                            $second = true;
-                        }
-                        else
-                        {
-                            $second = false;
-                        }
-                    }
-                    else if($arg3->getType() == "bool")
-                    {
-                        $second = $arg3->getName();
-
-                        if ($second == "true")
-                        {
-                            $second = true;
-                        }
-                        else
-                        {
-                            $second = false;
-                        }
-                    }
-                    else if($arg3->getType() == "nil")
-                    {
-                        $second = null;
-                    }
-                    else
-                    {
-                        fwrite(STDERR, "Funkce OR vyzaduje dve promenne typu bool");
-                        exit(ReturnCode::OPERAND_TYPE_ERROR);
-                    }
-                
-                    $orResult = $first || $second;
-
-                    if ($orResult)
-                    {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "true");
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                    }
-                    else
-                    {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "false");
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                    }
+                    logic($this, $instruction, $globalFrame, $localFrameBuffer, $temporaryFrame);
                     break;
 
                 case "NOT":
-                    if ($instruction->getNumOfArgs() != 2)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 2);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -1685,54 +608,18 @@ class Interpreter extends AbstractInterpreter
 
                     if ($notResult)
                     {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "true");
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "true");
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
+                        $this->updateVariableValueAndType($arg1->getName(), "true", "bool", $globalFrame, $localFrameBuffer, $temporaryFrame);
                     }
                     else
                     {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), "false");
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), "false");
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "bool");
-                        }
+                        $this->updateVariableValueAndType($arg1->getName(), "false", "bool", $globalFrame, $localFrameBuffer, $temporaryFrame);
                     }
 
                     break;
 
                 
                 case "INT2CHAR":
-                    if ($instruction->getNumOfArgs() != 2)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 2);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -1770,32 +657,13 @@ class Interpreter extends AbstractInterpreter
 
                     if($arg1->getType() == "var")
                     {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), $charVal);
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "string");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                            $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $charVal);
-                            $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "string");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $charVal);
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "string");
-                        }
+                        $this->updateVariableValueAndType($arg1->getName(), $charVal, "string", $globalFrame, $localFrameBuffer, $temporaryFrame);
                     }
+                    
                     break;
 
                 case "STRI2INT":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 3);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -1853,40 +721,19 @@ class Interpreter extends AbstractInterpreter
                    
                     if ($arg1->getType() == "var")
                     {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), $unicode);
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "string");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $unicode);
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "string");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $unicode);
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "string");
-                        }                        
-
+                        $this->updateVariableValueAndType($arg1->getName(), $unicode, "string", $globalFrame, $localFrameBuffer, $temporaryFrame);                     
                     }
                     else
                     {
                         fwrite(STDERR, "Prvni argument GETCHAR musi byt promenna\n");
                         exit(ReturnCode::OPERAND_TYPE_ERROR);
                     }
-
+                    
                     break;
 
 
                 case "READ":
-                    if ($instruction->getNumOfArgs() != 2)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 2);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -1942,28 +789,7 @@ class Interpreter extends AbstractInterpreter
 
                     if($arg1->getType() == "var")
                     {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), $readVal);
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), $readType);
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $readVal);
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), $readType);
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $readVal);
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), $readType);
-                        }
-                        else
-                        {
-                            fwrite(STDERR, "Nelze ulozit promennou jinam nez do zakladnich ramcu\n");
-                            exit(ReturnCode::FRAME_ACCESS_ERROR);
-                        }
+                        $this->updateVariableValueAndType($arg1->getName(), $readVal, $readType, $globalFrame, $localFrameBuffer, $temporaryFrame);
                     }
                     else
                     {
@@ -1975,11 +801,7 @@ class Interpreter extends AbstractInterpreter
 
 
                 case "WRITE":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
                     
@@ -2097,11 +919,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "CONCAT":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 3);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2174,11 +992,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "STRLEN":
-                    if ($instruction->getNumOfArgs() != 2)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 2);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2224,11 +1038,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "GETCHAR":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 3);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2285,25 +1095,8 @@ class Interpreter extends AbstractInterpreter
                     $getChar = $string[$stringPos];
                    
                     if ($arg1->getType() == "var")
-                    {
-                        if($this->varFrame($arg1->getName()) == "GF")
-                        {
-                            $globalFrame->updateVariableValue($this->varName($arg1->getName()), $getChar);
-                            $globalFrame->updateVariableType($this->varName($arg1->getName()), "string");
-    
-                        }
-                        else if($this->varFrame($arg1->getName()) == "TF")
-                        {
-                             $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $getChar);
-                             $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "string");
-                        }
-                        else if($this->varFrame($arg1->getName()) == "LF")
-                        {
-                            $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                            $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $getChar);
-                            $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "string");
-                        }                        
-
+                    {  
+                        $this->updateVariableValueAndType($arg1->getName(), $getChar, "string", $globalFrame, $localFrameBuffer, $temporaryFrame);                     
                     }
                     else
                     {
@@ -2313,11 +1106,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "SETCHAR":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 3);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2381,34 +1170,14 @@ class Interpreter extends AbstractInterpreter
                     }
 
                     $newString = $stringToModify;
-                    $newString[$stringPos] = $charToReplace;
-
-                    if($this->varFrame($arg1->getName()) == "GF")
-                    {
-                        $globalFrame->updateVariableValue($this->varName($arg1->getName()), $newString);
-                        $globalFrame->updateVariableType($this->varName($arg1->getName()), "string");
-
-                    }
-                    else if($this->varFrame($arg1->getName()) == "TF")
-                    {
-                         $temporaryFrame->updateVariableValue($this->varName($arg1->getName()), $newString);
-                         $temporaryFrame->updateVariableType($this->varName($arg1->getName()), "string");
-                    }
-                    else if($this->varFrame($arg1->getName()) == "LF")
-                    {
-                        $index = $localFrameBuffer->findVariableInBuffer($arg1->getName());
-                        $localFrameBuffer->getNFrame($index)->updateVariableValue($this->varName($arg1->getName()), $newString);
-                        $localFrameBuffer->getNFrame($index)->updateVariableType($this->varName($arg1->getName()), "string");
-                    }                                  
+                    $newString[$stringPos] = $charToReplace;  
+                    
+                    $this->updateVariableValueAndType($arg1->getName(), $newString, "string", $globalFrame, $localFrameBuffer, $temporaryFrame);
 
                     break;
 
                 case "TYPE":
-                    if ($instruction->getNumOfArgs() != 2)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 2);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2455,20 +1224,12 @@ class Interpreter extends AbstractInterpreter
 
 
                 case "LABEL":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
                     break;
 
 
                 case "JUMP":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
 
@@ -2486,11 +1247,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "JUMPIFEQ":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 3);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2625,11 +1382,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "JUMPIFNEQ":
-                    if ($instruction->getNumOfArgs() != 3)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 3);
 
                     $arg1 = $instruction->getFirstArg();
                     $arg2 = $instruction->getSecondArg();
@@ -2764,11 +1517,7 @@ class Interpreter extends AbstractInterpreter
                     break;
 
                 case "EXIT":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
             
                     $arg1 = $instruction->getFirstArg();
 
@@ -2807,11 +1556,7 @@ class Interpreter extends AbstractInterpreter
 
 
                 case "DPRINT":
-                    if ($instruction->getNumOfArgs() != 1)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 1);
 
                     $arg1 = $instruction->getFirstArg();
 
@@ -2837,14 +1582,11 @@ class Interpreter extends AbstractInterpreter
                     {
                         $this->stderr->writeString($arg1->getName());
                     }
+                    
                     break;
 
                 case "BREAK":
-                    if ($instruction->getNumOfArgs() != 0)
-                    {
-                        fwrite(STDERR, "Spatny pocet argumentu\n");
-                        exit(ReturnCode::INVALID_SOURCE_STRUCTURE);
-                    }
+                    $this->checkArgsAmount($instruction->getNumOfArgs(), 0);
 
                     $instructionOrder = $instruction->getOrder();
                     $instructionOpcode = $instruction->getOpcode();
@@ -2880,6 +1622,7 @@ class Interpreter extends AbstractInterpreter
                     $this->stderr->writeString("Local frames amount: ");
                     $this->stderr->writeInt(intval($localFramesAmount));
                     $this->stderr->writeString("\n");
+                    
                     break;
 
                     
