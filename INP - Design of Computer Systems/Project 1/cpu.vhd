@@ -187,9 +187,6 @@ begin
     end process; 
 
 
-
-    ---------- ZATIM K NICEMU ----------
-
     cnt: process (CLK, RESET) is
       begin
         if RESET = '1' then
@@ -204,7 +201,6 @@ begin
         end if;
       end process; 
 
-    -------------------------------------
 
     mx1: process (CLK, RESET, mx1Sel) is
       begin
