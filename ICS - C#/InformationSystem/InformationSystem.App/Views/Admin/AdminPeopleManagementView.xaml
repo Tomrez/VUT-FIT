@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Admin.AdminPeopleManagementView"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Admin"
+                       x:DataType="viewModels:AdminPeopleManagementViewModel"
+                       x:Name="AdminPeopleRoot">
+
+    <ScrollView>
+        <Grid ColumnDefinitions="*" RowDefinitions="auto, auto, auto, auto" ColumnSpacing="20" RowSpacing="20" Padding="20">
+
+        <!-- Header -->
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="0" HorizontalOptions="End">
+                <Button Text="Back"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="Black"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference AdminPeopleRoot}, Path=BindingContext.GoBackCommand}" />
+            </HorizontalStackLayout>
+
+            <!-- Body -->
+            <Label Text="Student management"
+                   FontSize="50"
+                   FontAttributes="Bold"
+                   Padding="10"
+                   Grid.Column="0"
+                   Grid.Row="1"
+                   HorizontalOptions="Center"/>
+
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="2" HorizontalOptions="Start">
+                <Button Text="Add Student"
+                        BackgroundColor="{StaticResource FitBlueColor}" 
+                        TextColor="White"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference AdminPeopleRoot}, Path=BindingContext.GoToPersonEditCommand}"
+                        CommandParameter="{Binding EmptyId}" />
+            </HorizontalStackLayout>
+
+            <Grid Grid.Column="0" Grid.Row="3" HorizontalOptions="Center" ColumnDefinitions="auto, auto, auto, auto, auto" RowDefinitions="auto, auto, *" BackgroundColor="{StaticResource TableLightGrayColor}">
+                
+                <!-- Table header -->
+                <Label Text="Name"
+                       WidthRequest="150"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="0"
+                       Grid.Row="0" />
+                
+                <Label Text="Surname"
+                       WidthRequest="200"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="1"
+                       Grid.Row="0" />
+                
+                <Label Text="Login"
+                       WidthRequest="150"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="2"
+                       Grid.Row="0" />
+                
+                <Label Text="Edit"
+                       WidthRequest="160"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="3"
+                       Grid.Row="0" />
+                
+                <BoxView Color="{StaticResource LightBlueColor}" Grid.Column="4" Grid.Row="0" />
+                <Picker Title="Sort by:"
+                        Grid.Column="4"
+                        Grid.Row="0"
+                        FontAttributes="Bold"
+                        BackgroundColor="White"
+                        SelectedItem="{Binding SortCriteria, Mode=TwoWay}">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>Name</x:String>
+                            <x:String>Surname</x:String>
+                            <x:String>Login</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
+
+                <!-- Table inputs to sort and filter -->
+                <BoxView Color="White" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="6" />
+                <BoxView Color="White" Grid.Column="4" Grid.Row="2" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="0"
+                       Grid.Row="1"
+                       Text="{Binding FilterName, Mode=TwoWay}" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="1"
+                       Grid.Row="1"
+                       Text="{Binding FilterSurname, Mode=TwoWay}" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="2"
+                       Grid.Row="1"
+                       Text="{Binding FilterLogin, Mode=TwoWay}" />
+
+                <!-- Table body -->
+                <CollectionView ItemsSource="{Binding FilteredStudents}" Grid.Row="2" Grid.ColumnSpan="4">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:StudentListModel">
+                            <Grid ColumnDefinitions="*, *, *, *">
+                                <Label Text="{Binding Name}"
+                                       WidthRequest="150"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="0"/>
+                                
+                                <Label Text="{Binding Surname}"
+                                       WidthRequest="200"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="1"/>
+                                
+                                <Label Text="{Binding Login}"
+                                       WidthRequest="150"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="2"/>
+                                
+                                <Button Text="Edit"
+                                        BackgroundColor="{StaticResource FitBlueColor}"
+                                        TextColor="White"
+                                        FontSize="Small"
+                                        Command="{Binding Source={x:Reference AdminPeopleRoot}, Path=BindingContext.GoToPersonEditCommand}"
+                                        CommandParameter="{Binding Id}"
+                                        Grid.Column="3"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

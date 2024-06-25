@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Admin.AdminSubjectEditView"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Admin"
+                       x:DataType="viewModels:AdminSubjectEditViewModel"
+                       x:Name="AdminSubjectEditRoot">
+
+    <ScrollView>
+        <Grid Padding="20"
+              ColumnDefinitions="*"
+              RowDefinitions="*,*,*,*"
+              ColumnSpacing="10"
+              RowSpacing="10">
+
+            <Grid Grid.Row="1"
+                  Grid.Column="0"
+                  ColumnDefinitions="2*,3*"
+                  RowDefinitions="*,*">
+
+                <!-- Subject abbreviation Field -->
+                <Label Grid.Column="0"
+                       Grid.Row="0"
+                       Text="Abbreviation:"
+                       FontSize="22"
+                       Padding="100,0,100,0"
+                       VerticalOptions="End"
+                       HorizontalOptions="End"  />
+
+                <Entry Grid.Column="1"
+                       Grid.Row="0"
+                       HeightRequest="50"
+                       WidthRequest="400"
+                       VerticalOptions="End"
+                       HorizontalOptions="Start"
+                       Placeholder=""
+                       Text="{Binding Abbreviation}" />
+
+                <!-- Subject Name Field -->
+
+                <Label Grid.Column="0"
+                       Grid.Row="1"
+                       Text="Name:"
+                       FontSize="22"
+                       Padding="100,0,100,0"
+                       VerticalOptions="End"
+                       HorizontalOptions="End"  />
+
+                <Entry Grid.Column="1"
+                       Grid.Row="1"
+                       HeightRequest="50"
+                       WidthRequest="400"
+                       VerticalOptions="End"
+                       HorizontalOptions="Start"
+                       Placeholder=""
+                       Text="{Binding Name}" />
+            </Grid>
+
+            <Grid Grid.Row="4"
+                  Grid.Column="0"
+                  ColumnDefinitions="*,*,*"
+                  RowDefinitions="*"
+                  ColumnSpacing="50">
+
+                <Button Text="Cancel"
+                        Grid.Column="0"
+                        Grid.Row="0"
+                        CornerRadius="40"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        MaximumWidthRequest="400"
+                        MaximumHeightRequest="150"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="White"
+                        Command="{Binding CancelCommand}" />
+
+                <Button Text="Save subject"
+                        Grid.Column="1"
+                        Grid.Row="0"
+                        CornerRadius="40"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        MaximumWidthRequest="400"
+                        MaximumHeightRequest="150"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        TextColor="White"
+                        Command="{Binding AddSubjectCommand}" />
+
+                <Button Text="Delete subject"
+                        Grid.Column="2"
+                        Grid.Row="0"
+                        CornerRadius="40"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        MaximumWidthRequest="400"
+                        MaximumHeightRequest="150"
+                        BackgroundColor="{StaticResource DeleteRedColor}"
+                        TextColor="White"
+                        Command="{Binding DeleteSubjectCommand}" />
+            </Grid>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Admin.AdminPeopleEditView"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Admin"
+                       x:DataType="viewModels:AdminPeopleEditViewModel"
+                       x:Name="AdminPeopleEditRoot">
+
+    <ScrollView>
+        <Grid Padding="20"
+              ColumnDefinitions="*"
+              RowDefinitions="*,auto,*,*"
+              ColumnSpacing="10"
+              RowSpacing="10">
+
+            <Grid Grid.Row="1"
+                  Grid.Column="0"
+                  ColumnDefinitions="2*,3*"
+                  RowDefinitions="*,*,*,*">
+
+                <!-- Name Field -->
+                <Label Grid.Column="0"
+                       Grid.Row="0"
+                       Text="Name:"
+                       FontSize="22"
+                       Padding="100,0,100,0"
+                       VerticalOptions="End"
+                       HorizontalOptions="End"  />
+
+                <Entry Grid.Column="1"
+                       Grid.Row="0"
+                       HeightRequest="50"
+                       WidthRequest="500"
+                       VerticalOptions="End"
+                       HorizontalOptions="Start"
+                       Placeholder=""
+                       Text="{Binding Name}" />
+
+                <!-- Surname Field -->
+
+                <Label Grid.Column="0"
+                       Grid.Row="1"
+                       Text="Surname:"
+                       FontSize="22"
+                       Padding="100,0,100,0"
+                       VerticalOptions="End"
+                       HorizontalOptions="End"  />
+
+                <Entry Grid.Column="1"
+                       Grid.Row="1"
+                       HeightRequest="50"
+                       WidthRequest="500"
+                       VerticalOptions="End"
+                       HorizontalOptions="Start"
+                       Placeholder=""
+                       Text="{Binding Surname}" />
+
+                <!-- Login Field -->
+
+                <Label Grid.Column="0"
+                       Grid.Row="2"
+                       Text="Login:"
+                       FontSize="22"
+                       Padding="100,0,100,0"
+                       VerticalOptions="End"
+                       HorizontalOptions="End"  />
+
+                <Entry Grid.Column="1"
+                       Grid.Row="2"
+                       HeightRequest="50"
+                       WidthRequest="500"
+                       VerticalOptions="End"
+                       HorizontalOptions="Start"
+                       Placeholder=""
+                       Text="{Binding Login}" />
+
+                <!-- PhotoUrl Field -->
+
+                <Label Grid.Column="0"
+                       Grid.Row="3"
+                       Text="PhotoUrl:"
+                       FontSize="22"
+                       Padding="100,0,100,0"
+                       VerticalOptions="End"
+                       HorizontalOptions="End"  />
+
+                <Entry Grid.Column="1"
+                       Grid.Row="3"
+                       HeightRequest="50"
+                       WidthRequest="500"
+                       VerticalOptions="End"
+                       HorizontalOptions="Start"
+                       Placeholder=""
+                       Text="{Binding PhotoUrl}" />
+            </Grid>
+
+            <Grid Grid.Row="4"
+                  Grid.Column="0"
+                  ColumnDefinitions="*,*,*"
+                  RowDefinitions="*"
+                  ColumnSpacing="50">
+
+                <Button Text="Cancel"
+                        Grid.Column="0"
+                        Grid.Row="0"
+                        CornerRadius="40"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        MaximumWidthRequest="400"
+                        MaximumHeightRequest="150"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="White"
+                        Command="{Binding CancelCommand}" />
+
+                <Button Text="Save student"
+                        Grid.Column="1"
+                        Grid.Row="0"
+                        CornerRadius="40"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        MaximumWidthRequest="400"
+                        MaximumHeightRequest="150"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        TextColor="White"
+                        Command="{Binding AddPersonCommand}" />
+
+                <Button Text="Delete student"
+                        Grid.Column="2"
+                        Grid.Row="0"
+                        CornerRadius="40"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        MaximumWidthRequest="400"
+                        MaximumHeightRequest="150"
+                        BackgroundColor="{StaticResource DeleteRedColor}"
+                        TextColor="White"
+                        Command="{Binding DeletePersonCommand}" />
+            </Grid>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Teacher.TeacherEvaluationEditView"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Teacher"
+                       x:DataType="viewModels:TeacherEvaluationEditViewModel"
+                       x:Name="TeacherEvaluationEditRoot">
+    <ScrollView>
+        <Grid VerticalOptions="Center" HorizontalOptions="Center" Grid.Row="3" Grid.Column="0" RowDefinitions="auto, auto, auto, auto" ColumnDefinitions="auto, auto" ColumnSpacing="30" RowSpacing="20">
+            <Label Text="Student login:"
+                   Grid.Column="0"
+                   Grid.Row="0"
+                   FontSize="Small"
+                   Padding="20" />
+
+            <Label Text="Earned points:"
+                   Grid.Column="0"
+                   Grid.Row="1"
+                   FontSize="Small"
+                   Padding="20" />
+
+            <Label Text="Evaluation note:"
+                   Grid.Column="0"
+                   Grid.Row="2"
+                   FontSize="Small"
+                   Padding="20" />
+
+            <Picker ItemsSource="{Binding Students}"
+                    ItemDisplayBinding="{Binding Login}"
+                    SelectedItem="{Binding SelectedStudent, Mode=TwoWay}"
+                    Grid.Column="1"
+                    Grid.Row="0" />
+
+            <Entry Text="{Binding Points, Mode=TwoWay}"
+                   Placeholder="0"
+                   FontSize="Small"
+                   Keyboard="Numeric"
+                   Grid.Column="1"
+                   Grid.Row="1" />
+
+            <Entry Text="{Binding Note, Mode=TwoWay}"
+                   FontSize="Small"
+                   Grid.Column="1"
+                   Grid.Row="2" />
+
+            <Button Text="Cancel"
+                    Grid.Column="0"
+                    Grid.Row="3"
+                    CornerRadius="20"
+                    FontAttributes="Bold"
+                    FontSize="Small"
+                    BackgroundColor="{StaticResource BackDarkGrayColor}"
+                    TextColor="White"
+                    Padding="20"
+                    Command="{Binding CancelCommand}" />
+
+            <Button Text="Save evaluation"
+                    Grid.Column="1"
+                    Grid.Row="3"
+                    CornerRadius="20"
+                    FontAttributes="Bold"
+                    FontSize="Small"
+                    BackgroundColor="{StaticResource FitBlueColor}"
+                    TextColor="White"
+                    Padding="20"
+                    Command="{Binding EditCommand}" />
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

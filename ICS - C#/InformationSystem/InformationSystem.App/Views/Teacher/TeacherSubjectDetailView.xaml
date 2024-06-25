@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Teacher.TeacherSubjectDetailView"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Teacher"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       x:DataType="viewModels:TeacherSubjectDetailViewModel"
+                       x:Name="TeacherSubjectDetailRoot">
+
+    <ScrollView>
+        <Grid ColumnDefinitions="*" RowDefinitions="auto, auto, auto" ColumnSpacing="20" RowSpacing="20" Padding="20">
+
+            <!-- Header -->
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="0" HorizontalOptions="End">
+                <Button Text="Back"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="Black"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference TeacherSubjectDetailRoot}, Path=BindingContext.GoBackCommand}" />
+            </HorizontalStackLayout>
+
+            <!-- Body -->
+            <Label Text="{Binding Subject.Name}"
+                   FontSize="30"
+                   FontAttributes="Bold"
+                   Padding="10"
+                   Grid.Column="0"
+                   Grid.Row="1"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center" />
+
+            <Grid Grid.Column="0" Grid.Row="2" HorizontalOptions="Center" ColumnDefinitions="auto, auto, auto" RowDefinitions="auto, *, auto">
+                <!-- Table header -->
+                <Label Text="Activity"
+                       WidthRequest="200"
+                       TextColor="Black"
+                       FontSize="Medium"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       Grid.Column="0"
+                       Grid.Row="0" />
+
+                <Button Text="Add Activity"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        TextColor="White"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference TeacherSubjectDetailRoot}, Path=BindingContext.GoToActivityAddCommand}" 
+                        CommandParameter="{Binding Id}"
+                        Grid.Column="1"
+                        Grid.Row="0" />
+
+                <!-- Table body -->
+                <BoxView Color="White" Grid.Column="5" Grid.Row="1" />
+                <CollectionView ItemsSource="{Binding Activities}" Grid.Row="1" Grid.ColumnSpan="3">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ActivityAndEvaluationListModel">
+                            <Grid ColumnDefinitions="*, *, *">
+                                <Label Text="{Binding ActivityType}"
+                                       WidthRequest="200"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="0" />
+
+                                <Button Text="Edit Evaluation"
+                                        BackgroundColor="White"
+                                        TextColor="{StaticResource FitBlueColor}"
+                                        FontSize="Small"
+                                        CornerRadius="20"
+                                        Padding="25"
+                                        Command="{Binding Source={x:Reference TeacherSubjectDetailRoot}, Path=BindingContext.GoToEditCommand}"
+                                        CommandParameter="{Binding Id}"
+                                        Grid.Column="1"
+                                        Grid.Row="0" />
+
+                                <Button Text="Edit Activity"
+                                        BackgroundColor="White"
+                                        TextColor="{StaticResource FitBlueColor}"
+                                        FontSize="Small"
+                                        CornerRadius="20"
+                                        Padding="25"
+                                        Command="{Binding Source={x:Reference TeacherSubjectDetailRoot}, Path=BindingContext.GoToEditActivityCommand}" 
+                                        CommandParameter="{Binding Id}"
+                                        Grid.Column="2"
+                                        Grid.Row="0" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

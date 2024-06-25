@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Admin.AdminDefaultView"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Admin"
+                       x:DataType="viewModels:AdminDefaultViewModel"
+                       x:Name="AdminRoot">
+
+    <ScrollView>
+        <VerticalStackLayout HorizontalOptions="CenterAndExpand" VerticalOptions="CenterAndExpand" Spacing="20">
+            
+            <!-- Header -->
+            <HorizontalStackLayout HorizontalOptions="End">
+                <VerticalStackLayout>
+                    <Button Text="Log out"
+                            BackgroundColor="{StaticResource BackDarkGrayColor}"
+                            TextColor="Black"
+                            FontSize="Small"
+                            CornerRadius="20"
+                            Padding="25"
+                            Command="{Binding Source={x:Reference AdminRoot}, Path=BindingContext.LogoutCommand}" />
+                    
+                    <Label Text="Admin, administrator"
+                           VerticalOptions="Center" 
+                           HorizontalOptions="Center"
+                           FontSize="Micro"
+                           Padding="2" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- Body -->
+            <HorizontalStackLayout HorizontalOptions="CenterAndExpand" VerticalOptions="CenterAndExpand" Spacing="20">
+                <Button Text="Manage students"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        FontSize="Medium"
+                        CornerRadius="60"
+                        Padding="70" 
+                        Command="{Binding Source={x:Reference AdminRoot}, Path=BindingContext.GoToPeopleCommand}" />
+                
+                <Button Text="Manage subjects"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        FontSize="Medium"
+                        CornerRadius="60"
+                        Padding="70" 
+                        Command="{Binding Source={x:Reference AdminRoot}, Path=BindingContext.GoToSubjectCommand}" />
+            </HorizontalStackLayout>
+            
+            <HorizontalStackLayout HorizontalOptions="CenterAndExpand" VerticalOptions="CenterAndExpand" Spacing="20">
+                <Button Text="Edit student in subject"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        FontSize="Medium"
+                        CornerRadius="60"
+                        Padding="70" 
+                        Command="{Binding Source={x:Reference AdminRoot}, Path=BindingContext.GoToEditCommand}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</views:ContentPageBase>

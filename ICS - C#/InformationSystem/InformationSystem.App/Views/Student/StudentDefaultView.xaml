@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Student.StudentDefaultView"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Student"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       x:DataType="viewModels:StudentDefaultViewModel"
+                       x:Name="StudentRoot">
+    
+    <ScrollView>
+        <Grid ColumnDefinitions="2*, *, *" RowDefinitions="auto, auto" ColumnSpacing="20" RowSpacing="20" Padding="20">
+
+            <!-- Header -->
+            <HorizontalStackLayout Grid.Column="2" HorizontalOptions="End">
+                <VerticalStackLayout>
+                    <Button Text="Log out"
+                            BackgroundColor="{StaticResource BackDarkGrayColor}"
+                            TextColor="Black"
+                            FontSize="Small"
+                            CornerRadius="20"
+                            Padding="25"
+                            Command="{Binding Source={x:Reference StudentRoot}, Path=BindingContext.LogoutCommand}" />
+
+                    <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="Student:"
+                               FontSize="Micro"
+                               HeightRequest="35"
+                               Padding="5" />
+
+                        <Picker ItemsSource="{Binding Students}"
+                                ItemDisplayBinding="{Binding Login}"
+                                SelectedItem="{Binding SelectedStudent}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- Body -->
+
+            <CollectionView ItemsSource="{Binding Subjects}" Grid.Column="0" Grid.Row="2">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:SubjectListModel">
+                        <HorizontalStackLayout>
+                            <Button Text="{Binding Name}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource FitBlueColor}"
+                                    FontSize="Small"
+                                    Padding="10"
+                                    Command="{Binding Source={x:Reference StudentRoot}, Path=BindingContext.GoToDetailCommand}"
+                                    CommandParameter="{Binding Id}" />
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <VerticalStackLayout Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" HorizontalOptions="Center">
+                <Button Text="Activities"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        Padding="25"
+                        CornerRadius="20"
+                        TextColor="White"
+                        FontSize="Small"
+                        Command="{Binding Source={x:Reference StudentRoot}, Path=BindingContext.GoToActivitiesCommand}" />
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

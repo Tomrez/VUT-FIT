@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Admin.AdminSubjectManagementView"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Admin"
+                       x:DataType="viewModels:AdminSubjectManagementViewModel"
+                       x:Name="AdminSubjectRoot">
+
+    <ScrollView>
+        <Grid ColumnDefinitions="*" RowDefinitions="auto, auto, auto, auto" ColumnSpacing="20" RowSpacing="20" Padding="20">
+
+            <!-- Header -->
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="0" HorizontalOptions="End">
+                <Button Text="Back"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="Black"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference AdminSubjectRoot}, Path=BindingContext.GoBackCommand}" />
+            </HorizontalStackLayout>
+
+            <Label Text="Subject management"
+                   FontSize="50"
+                   FontAttributes="Bold"
+                   Padding="10"
+                   Grid.Column="0"
+                   Grid.Row="1"
+                   HorizontalOptions="Center"/>
+
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="2" HorizontalOptions="Start">
+                <Button Text="Add Subject"
+                        BackgroundColor="{StaticResource FitBlueColor}"
+                        TextColor="White"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference AdminSubjectRoot}, Path=BindingContext.GoToSubjectEditCommand}" 
+                        CommandParameter="{Binding EmptyId}" />
+            </HorizontalStackLayout>
+
+            <Grid Grid.Column="0" Grid.Row="3" HorizontalOptions="Center" ColumnDefinitions="auto, auto, auto, auto" RowDefinitions="auto, auto, *" BackgroundColor="{StaticResource TableLightGrayColor}">
+                
+                <!-- Table header -->
+                <Label Text="Abbreviation"
+                       WidthRequest="200"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="0"
+                       Grid.Row="0" />
+                
+                <Label Text="Name"
+                       HorizontalOptions="Center"
+                       WidthRequest="400"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="1"
+                       Grid.Row="0" />
+                
+                <Label Text="Edit"
+                       WidthRequest="90"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="2"
+                       Grid.Row="0" />
+                
+                <BoxView Color="{StaticResource LightBlueColor}" Grid.Column="3" Grid.Row="0" />
+                <Picker Title="Sort by:"
+                        Grid.Column="3"
+                        Grid.Row="0"
+                        FontAttributes="Bold"
+                        BackgroundColor="White"
+                        SelectedItem="{Binding SortCriteria, Mode=TwoWay}">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>Abbreviation</x:String>
+                            <x:String>Name</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
+
+                <!-- Table inputs to sort and filter -->
+                <BoxView Color="White" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="6" />
+                <BoxView Color="White" Grid.Column="3" Grid.Row="2" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="0"
+                       Grid.Row="1"
+                       Text="{Binding FilterAbbreviation, Mode=TwoWay}" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="1"
+                       Grid.Row="1"
+                       Text="{Binding FilterName, Mode=TwoWay}" />
+
+                <!-- Table body -->
+                <CollectionView ItemsSource="{Binding FilteredSubjects}" Grid.Row="2" Grid.ColumnSpan="3">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:SubjectListModel">
+                            <Grid ColumnDefinitions="*, *, *">
+                                <Label Text="{Binding Abbreviation}"
+                                       WidthRequest="200"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="0"/>
+                                
+                                <Label Text="{Binding Name}"
+                                       WidthRequest="400"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="1"/>
+                                
+                                <Button Text="Edit"
+                                        BackgroundColor="{StaticResource FitBlueColor}"
+                                        TextColor="White"
+                                        FontSize="Small"
+                                        Command="{Binding Source={x:Reference AdminSubjectRoot}, Path=BindingContext.GoToSubjectEditCommand}"
+                                        CommandParameter="{Binding Id}"
+                                        Grid.Column="2"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

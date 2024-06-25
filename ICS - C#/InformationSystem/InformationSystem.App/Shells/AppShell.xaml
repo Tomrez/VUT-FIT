@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="InformationSystem.App.Shells.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:InformationSystem.App.Views"
+    xmlns:t="clr-namespace:InformationSystem.App.Views.Teacher"
+    xmlns:s="clr-namespace:InformationSystem.App.Views.Student"
+    xmlns:a="clr-namespace:InformationSystem.App.Views.Admin"
+    x:Name="AppShellRoot"
+    Shell.FlyoutBehavior="Disabled"
+    Title="Information System">
+
+    <Shell.MenuBarItems>
+        <MenuBarItem Text="Change view">
+            <MenuFlyoutItem Text="Student view"
+                            Command="{Binding Source={x:Reference AppShellRoot}, Path=GoToStudentCommand}" />
+
+            <MenuFlyoutItem Text="Teacher view"
+                            Command="{Binding Source={x:Reference AppShellRoot}, Path=GoToTeacherCommand}" />
+
+            <MenuFlyoutItem Text="Admin view"
+                            Command="{Binding Source={x:Reference AppShellRoot}, Path=GoToAdminCommand}" />
+        </MenuBarItem>
+    </Shell.MenuBarItems>
+
+    <ShellContent ContentTemplate="{DataTemplate a:AdminDefaultView}" Route="adminDefaultView" />
+    <ShellContent ContentTemplate="{DataTemplate s:StudentDefaultView}" Route="studentDefaultView" />
+    <ShellContent ContentTemplate="{DataTemplate t:TeacherDefaultView}" Route="teacherDefaultView" />
+</Shell>

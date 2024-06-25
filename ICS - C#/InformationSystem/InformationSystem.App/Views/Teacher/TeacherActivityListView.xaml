@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Teacher.TeacherActivityListView"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Teacher"
+                       x:DataType="viewModels:TeacherActivityListViewModel"
+                       x:Name="TeacherActivitiesRoot">
+    <ScrollView>
+        <Grid ColumnDefinitions="*" RowDefinitions="auto, auto, auto, auto" ColumnSpacing="20" RowSpacing="20" Padding="20">
+            <!-- Header -->
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="0" HorizontalOptions="End">
+                <Button Text="Back"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="Black"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference TeacherActivitiesRoot}, Path=BindingContext.GoBackCommand}" />
+            </HorizontalStackLayout>
+
+            <!-- Body -->
+            <Label Text="Activities"
+                   FontSize="50"
+                   FontAttributes="Bold"
+                   Padding="10"
+                   Grid.Column="0"
+                   Grid.Row="1"
+                   HorizontalOptions="Center"/>
+
+            <Grid Grid.Column="0" Grid.Row="3" HorizontalOptions="Center" ColumnDefinitions="auto, auto, auto, auto, auto, auto" RowDefinitions="auto, auto, *" BackgroundColor="{StaticResource TableLightGrayColor}">
+                <!-- Table header -->
+                <Label Text="Subject"
+                       WidthRequest="150"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="0"
+                       Grid.Row="0" />
+
+                <Label Text="Type of activity"
+                       WidthRequest="200"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="1"
+                       Grid.Row="0" />
+
+                <Label Text="Start date"
+                       WidthRequest="150"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="2"
+                       Grid.Row="0" />
+
+                <Label Text="End date"
+                       WidthRequest="150"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="3"
+                       Grid.Row="0" />
+
+                <Label Text="Place"
+                       WidthRequest="150"
+                       TextColor="Black"
+                       FontSize="Small"
+                       Padding="20"
+                       FontAttributes="Bold"
+                       BackgroundColor="{StaticResource LightBlueColor}"
+                       Grid.Column="4"
+                       Grid.Row="0" />
+
+                <BoxView Color="{StaticResource LightBlueColor}" Grid.Column="5" Grid.Row="0" />
+
+                <Picker Title="Sort by:"
+                        Grid.Column="5"
+                        Grid.Row="0"
+                        WidthRequest="150"
+                        FontAttributes="Bold"
+                        Margin="5"
+                        BackgroundColor="White"
+                        SelectedItem="{Binding SortCriteria, Mode=TwoWay}">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>Subject</x:String>
+                            <x:String>Activity type</x:String>
+                            <x:String>Start date</x:String>
+                            <x:String>End date</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
+
+                <!-- Table inputs to sort and filter -->
+                <BoxView Color="White" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="6" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="0"
+                       Grid.Row="1"
+                       Text="{Binding FilterSubject, Mode=TwoWay}" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="1"
+                       Grid.Row="1"
+                       Text="{Binding FilterActivityType, Mode=TwoWay}" />
+
+                <DatePicker Date="{Binding FilterStartDate, Mode=TwoWay}"
+                            FontSize="15"
+                            WidthRequest="150"
+                            Grid.Column="2"
+                            Grid.Row="1" />
+
+                <DatePicker Date="{Binding FilterEndDate, Mode=TwoWay}"
+                            FontSize="15"
+                            WidthRequest="150"
+                            Grid.Column="3"
+                            Grid.Row="1" />
+
+                <Entry Placeholder="-all-"
+                       FontSize="15"
+                       Grid.Column="4"
+                       Grid.Row="1"
+                       Text="{Binding FilterPlace, Mode=TwoWay}" />
+
+                <!-- Table body -->
+                <CollectionView ItemsSource="{Binding FilteredActivities}" Grid.Row="2" Grid.ColumnSpan="6">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ActivityListModel">
+                            <Grid ColumnDefinitions="*, *, *, *, *, *">
+                                <Label Text="{Binding Subject.Abbreviation}"
+                                       WidthRequest="150"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="0"/>
+
+                                <Label Text="{Binding ActivityType}"
+                                       WidthRequest="200"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="1"/>
+
+                                <Label Text="{Binding ActivityStart}"
+                                       WidthRequest="150"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="2"/>
+
+                                <Label Text="{Binding ActivityEnd}"
+                                       WidthRequest="150"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="3"/>
+
+                                <Label Text="{Binding ActivityRoom}"
+                                       WidthRequest="150"
+                                       TextColor="Black"
+                                       FontSize="Small"
+                                       Padding="20"
+                                       Grid.Column="4"/>
+
+                                <Frame Grid.Column="5" Grid.Row="0" WidthRequest="150">
+                                    <VerticalStackLayout>
+                                        <Label x:Name="PartTextLabel"
+                                               Text="Description:"
+                                               FontSize="13"
+                                               IsVisible="True" />
+                                        <Label x:Name="FullTextLabel" 
+                                               Text="{Binding Description}"
+                                               FontSize="13"
+                                               IsVisible="False" />
+                                    </VerticalStackLayout>
+                                    <Frame.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnFrameTapped" />
+                                    </Frame.GestureRecognizers>
+                                </Frame>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>

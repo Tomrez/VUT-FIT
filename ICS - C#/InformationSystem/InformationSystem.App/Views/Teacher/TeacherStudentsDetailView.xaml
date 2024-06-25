@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<views:ContentPageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                       xmlns:views="clr-namespace:InformationSystem.App.Views"
+                       x:Class="InformationSystem.App.Views.Teacher.TeacherStudentsDetailView"
+                       xmlns:converters="clr-namespace:InformationSystem.App.Converters"
+                       xmlns:viewModels="clr-namespace:InformationSystem.App.ViewModels.Teacher"
+                       xmlns:models="clr-namespace:InformationSystem.BL.Models;assembly=InformationSystem.BL"
+                       x:DataType="viewModels:TeacherStudentsDetailViewModel"
+                       x:Name="TeacherStudentDetailRoot">
+
+    <views:ContentPageBase.Resources>
+        <ResourceDictionary>
+            <converters:LoginToEmailConverter x:Key="LoginToEmailConverter" />
+        </ResourceDictionary>
+    </views:ContentPageBase.Resources>
+
+    <ScrollView>
+        <Grid RowDefinitions="auto, auto, auto, auto, auto, auto" RowSpacing="10" BackgroundColor="{StaticResource TableLightGrayColor}">
+
+            <!-- Header -->
+            <HorizontalStackLayout Grid.Column="0" Grid.Row="0" HorizontalOptions="End" Padding="20">
+                <Button Text="Back"
+                        BackgroundColor="{StaticResource BackDarkGrayColor}"
+                        TextColor="Black"
+                        FontSize="Small"
+                        CornerRadius="20"
+                        Padding="25"
+                        Command="{Binding Source={x:Reference TeacherStudentDetailRoot}, Path=BindingContext.GoBackCommand}" />
+            </HorizontalStackLayout>
+
+
+            <Image Source="{Binding StudentPhotoUrl, TargetNullValue='dotnet_bot.jpg'}"
+                   Grid.Row="1"
+                   HeightRequest="300"
+                   WidthRequest="300"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center" />
+
+            <Label Text="{Binding FullName}"
+                    WidthRequest="300"
+                    TextColor="Black"
+                    FontSize="Large"
+                    FontAttributes="Bold"
+                    Grid.Row="2"
+                    HorizontalTextAlignment="Center" />
+
+            <Label Text="{Binding StudentLogin}"
+                    WidthRequest="300"
+                    TextColor="Black"
+                    FontSize="Medium"
+                    Grid.Row="3" 
+                    HorizontalTextAlignment="Center" />
+
+            <Label Text="{Binding StudentLogin, Converter={StaticResource LoginToEmailConverter}}"
+                    WidthRequest="300"
+                    TextColor="Black"
+                    FontSize="Medium"
+                    Grid.Row="4"
+                    HorizontalTextAlignment="Center" />
+        </Grid>
+    </ScrollView>
+</views:ContentPageBase>
